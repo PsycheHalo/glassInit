@@ -146,7 +146,8 @@ def unflatten_from_2d(
     return x_perm.permute(*reverse)
 
 def glassInit_(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
-    weight.copy_(glassInit(weight,inDim,outDim,gain,zeroMean))
+    with torch.no_grad():
+        weight.copy_(glassInit(weight,inDim,outDim,gain,zeroMean))
 
 
 #大多数时候不需要传入外部gain,外部gain默认为none,如果传入外部gain则内部gain不生效.输入特征数小于输出特征数时内部gain为1.输入特征数大于输出特征数时内部gain为1/sqrt(输入特征数/输出特征数)
