@@ -13,6 +13,3 @@ Homepage="https://github.com/PsycheHalo/glassInit"
 Issues="https://github.com/PsycheHalo/glassInit/issues"
 [metadata]
 license_expression = "MPL-2.0"
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["glassInit*"]
