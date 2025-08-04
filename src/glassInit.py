@@ -150,11 +150,12 @@ def glassInit_(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
         weight.copy_(glassInit(weight,inDim,outDim,gain,zeroMean))
 
 
-#大多数时候不需要传入外部gain,外部gain默认为none,如果传入外部gain则内部gain不生效.输入特征数小于输出特征数时内部gain为1.输入特征数大于输出特征数时内部gain为1/sqrt(输入特征数/输出特征数)
+#大多数时候不需要传入外部gain
 #需根据矩阵各维度的作用填写inDim和outDim,最终加在一起的要填到inDim,输出时仍然分离的要填到outDim
 #举例来说卷积层的inChannel维度和kernels维度要填到inDim里,outChannel维度要填到outDim里
-#转置卷积要根据设定参数后的具体行为决定kernels维度要填到哪里,可以先写道outDim中尝试
-#如果zeroMean为False,返回矩阵将没有小于零的值,并且是插值矩阵.否则,返回矩阵将对插值矩阵逐元素随机取反.    
+#转置卷积要根据设定参数后的具体行为决定kernels维度要填到哪里,可以先写道inDim中尝试
+#如果zeroMean为False,返回矩阵将没有小于零的值,并且是插值矩阵.否则,返回矩阵将对插值矩阵逐元素随机取反.  
+#如果输入元素数大于输出元素数,矩阵实现线性插值,否则是插0插值.两种插值均为循环边界条件.  
 #返回矩阵的维度、尺寸与输入矩阵相同
 def glassInit(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
     with torch.no_grad():
@@ -168,7 +169,8 @@ def glassInit(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
             TFlag=False
             M=tensor2d
             if gain is None:
-                gain=math.sqrt(tensor2d.size(0)/tensor2d.size(1))
+                #gain=math.sqrt(tensor2d.size(0)/tensor2d.size(1))
+                gain=1
         #M矩阵第一维度为短边（行数），第二维度为长边（列数）
         si=M.size(0)
         so=M.size(1)
@@ -179,16 +181,33 @@ def glassInit(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
         so3=math.ceil(so*3-(so/si)+1)
         o3=torch.nn.functional.interpolate(eye3.unsqueeze(0),so3,mode="linear",align_corners=True)
         o=o3.squeeze(0)[:,(so3-so)//2:(so3+so)//2]
+        
+        
         if TFlag:
             output2d=o.T
         else:
             output2d=o
+            #下面两行会存在因插值正好平分而连续两个1的情况(其中一个是多余的)
+            #output2d-=output2d.amax(dim=1,keepdim=True)
+            #output2d=output2d.sign()+1
+            
+            #因此采用下面这段代码,在单位矩阵中均匀插0
+            output2d=torch.zeros_like(output2d)
+            
+            row_pos = ((torch.arange(si, device=output2d.device) * output2d.size(0)) / si).round().int()   
+            col_pos = ((torch.arange(si, device=output2d.device) * output2d.size(1)) / si).round().int()   
+
+            row_idx = row_pos.unsqueeze(1).expand(si, si).reshape(-1)
+            col_idx = col_pos.unsqueeze(0).expand(si, si).reshape(-1)
+
+            output2d[row_idx, col_idx] = eye.reshape(-1)
     
         output2d=output2d.sqrt()*gain
         if zeroMean:
             output2d*=(torch.randint_like(output2d,0,2)*2-1)
         output=unflatten_from_2d(output2d,inDim,outDim,weight.shape)
         return output
+
 
 if __name__ == '__main__':
     a=torch.empty((3,6))
@@ -255,3 +274,4 @@ if __name__ == '__main__':
     print(torch.allclose(x, x_rec))  # True
 
         
+
