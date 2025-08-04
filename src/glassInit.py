@@ -145,9 +145,9 @@ def unflatten_from_2d(
 
     return x_perm.permute(*reverse)
 
-def glassInit_(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
+def glassInit_(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True,sparse=True):
     with torch.no_grad():
-        weight.copy_(glassInit(weight,inDim,outDim,gain,zeroMean))
+        weight.copy_(glassInit(weight,inDim,outDim,gain,zeroMean,sparse))
 
 
 #大多数时候不需要传入外部gain(默认为None)如果传入外部gain则内部gain不生效.
@@ -279,5 +279,6 @@ if __name__ == '__main__':
     print(torch.allclose(x, x_rec))  # True
 
         
+
 
 
