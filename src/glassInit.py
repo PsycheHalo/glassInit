@@ -150,27 +150,30 @@ def glassInit_(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
         weight.copy_(glassInit(weight,inDim,outDim,gain,zeroMean))
 
 
-#大多数时候不需要传入外部gain
+#大多数时候不需要传入外部gain(默认为None)如果传入外部gain则内部gain不生效.
+#输入元素数小于输出元素数且关闭稀疏时内部gain为1. 否则内部gain为sqrt(输出元素数/输入元素数)
 #需根据矩阵各维度的作用填写inDim和outDim,最终加在一起的要填到inDim,输出时仍然分离的要填到outDim
 #举例来说卷积层的inChannel维度和kernels维度要填到inDim里,outChannel维度要填到outDim里
 #转置卷积要根据设定参数后的具体行为决定kernels维度要填到哪里,可以先写道inDim中尝试
 #如果zeroMean为False,返回矩阵将没有小于零的值,并且是插值矩阵.否则,返回矩阵将对插值矩阵逐元素随机取反.  
-#如果输入元素数大于输出元素数,矩阵实现线性插值,否则是插0插值.两种插值均为循环边界条件.  
+#如果输入元素数大于输出元素数或关闭稀疏,矩阵实现线性插值,否则是插0插值.两种插值均为循环边界条件.  
 #返回矩阵的维度、尺寸与输入矩阵相同
-def glassInit(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
+def glassInit(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True,sparse=True):
     with torch.no_grad():
         tensor2d=flatten_to_2d(weight,inDim,outDim)
         if tensor2d.size(0)>tensor2d.size(1):
             TFlag=True
             M=tensor2d.T
             if gain is None:
-                gain=1
+                if sparse:
+                    gain=math.sqrt(tensor2d.size(0)/tensor2d.size(1))
+                else:
+                    gain=1
         else:
             TFlag=False
             M=tensor2d
             if gain is None:
-                #gain=math.sqrt(tensor2d.size(0)/tensor2d.size(1))
-                gain=1
+                gain=math.sqrt(tensor2d.size(0)/tensor2d.size(1))
         #M矩阵第一维度为短边（行数），第二维度为长边（列数）
         si=M.size(0)
         so=M.size(1)
@@ -185,22 +188,24 @@ def glassInit(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True):
         
         if TFlag:
             output2d=o.T
+            if sparse:
+                #下面两行会存在因插值正好平分而连续两个1的情况(其中一个是多余的)
+                #output2d-=output2d.amax(dim=1,keepdim=True)
+                #output2d=output2d.sign()+1
+            
+                #因此采用下面这段代码,在单位矩阵中均匀插0
+                output2d=torch.zeros_like(output2d)
+            
+                row_pos = ((torch.arange(si, device=output2d.device) * output2d.size(0)) / si).round().int()   # shape (H,)
+                col_pos = ((torch.arange(si, device=output2d.device) * output2d.size(1)) / si).round().int()   # shape (W,)
+
+                row_idx = row_pos.unsqueeze(1).expand(si, si).reshape(-1)
+                col_idx = col_pos.unsqueeze(0).expand(si, si).reshape(-1)
+
+                output2d[row_idx, col_idx] = eye.reshape(-1)
         else:
             output2d=o
-            #下面两行会存在因插值正好平分而连续两个1的情况(其中一个是多余的)
-            #output2d-=output2d.amax(dim=1,keepdim=True)
-            #output2d=output2d.sign()+1
             
-            #因此采用下面这段代码,在单位矩阵中均匀插0
-            output2d=torch.zeros_like(output2d)
-            
-            row_pos = ((torch.arange(si, device=output2d.device) * output2d.size(0)) / si).round().int()   
-            col_pos = ((torch.arange(si, device=output2d.device) * output2d.size(1)) / si).round().int()   
-
-            row_idx = row_pos.unsqueeze(1).expand(si, si).reshape(-1)
-            col_idx = col_pos.unsqueeze(0).expand(si, si).reshape(-1)
-
-            output2d[row_idx, col_idx] = eye.reshape(-1)
     
         output2d=output2d.sqrt()*gain
         if zeroMean:
@@ -274,4 +279,5 @@ if __name__ == '__main__':
     print(torch.allclose(x, x_rec))  # True
 
         
+
 
