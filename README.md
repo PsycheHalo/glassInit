@@ -16,15 +16,20 @@ from glassInit import glassInit_
 linear=torch.nn.Linear(512,2048,bias=False)
 glassInit_(linear.weight,inDim=...,outDim=0,gain=None,zeroMean=True)
 ```
-大多数时候不需要传入外部gain(默认为None),如果传入外部gain则内部gain不生效.输入元素数大于输出元素数时内部gain为1/sqrt(输入特征数/输出特征数),否则内部gain为1.
+
+大多数时候不需要传入外部gain(默认为None)如果传入外部gain则内部gain不生效.
+
+输入元素数小于输出元素数且关闭稀疏时内部gain为1. 否则内部gain为sqrt(输出元素数/输入元素数)
 
 需根据矩阵各维度的作用填写inDim和outDim,最终加在一起的要填到inDim,输出时仍然分离的要填到outDim
 
 举例来说卷积层的inChannel维度和kernels维度要填到inDim里,outChannel维度要填到outDim里
 
-转置卷积要根据设定参数后的具体行为决定kernels维度要填到哪里,可以先写到inDim中尝试
+转置卷积要根据设定参数后的具体行为决定kernels维度要填到哪里,可以先写道inDim中尝试
 
-如果zeroMean为False,返回矩阵将没有小于零的值,并且是插值矩阵.否则,返回矩阵将对插值矩阵逐元素随机取反.   
+如果zeroMean为False,返回矩阵将没有小于零的值,并且是插值矩阵.否则,返回矩阵将对插值矩阵逐元素随机取反.  
+
+如果输入元素数大于输出元素数或关闭稀疏,矩阵实现线性插值,否则是插0插值.两种插值均为循环边界条件.  
 
 
 ## HomePage
