@@ -145,7 +145,7 @@ def unflatten_from_2d(
 
     return x_perm.permute(*reverse)
 
-def glassInit_(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True,sparse=True):
+def glassInit_(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True,sparse=False):
     with torch.no_grad():
         weight.copy_(glassInit(weight,inDim,outDim,gain,zeroMean,sparse))
 
@@ -158,7 +158,7 @@ def glassInit_(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True,sp
 #如果zeroMean为False,返回矩阵将没有小于零的值,并且是插值矩阵.否则,返回矩阵将对插值矩阵逐元素随机取反.  
 #如果输入元素数大于输出元素数或关闭稀疏,矩阵实现线性插值,否则是插0插值.两种插值均为循环边界条件.  
 #返回矩阵的维度、尺寸与输入矩阵相同
-def glassInit(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True,sparse=True):
+def glassInit(weight:torch.Tensor,inDim=...,outDim=0,gain=None,zeroMean=True,sparse=False):
     with torch.no_grad():
         tensor2d=flatten_to_2d(weight,inDim,outDim)
         if tensor2d.size(0)>tensor2d.size(1):
@@ -279,6 +279,7 @@ if __name__ == '__main__':
     print(torch.allclose(x, x_rec))  # True
 
         
+
 
 
 
