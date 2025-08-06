@@ -1,6 +1,6 @@
 [project]
 name="glassInit"
-version="0.0.5"
+version="0.0.6"
 authors=[{name="Psyche Halo", email="Psyche@WinsGod.com"},]
 description="glassInit is a way to initialize the parameters of a neural network layer @pytorch. It is suitable for shortcut connections where tensor sizes need to be adjusted. The flow of information between forward and backward propagation is maximized while adjusting the tensor size. "
 readme = "README.md"
