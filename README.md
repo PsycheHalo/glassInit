@@ -17,6 +17,8 @@ linear=torch.nn.Linear(512,2048,bias=False)
 glassInit_(linear.weight,inDim=...,outDim=0,gain=None,zeroMean=True)
 ```
 
+推荐在预训练时对glassInit初始化的层使用极小的学习率甚至冻结,而微调时反之.
+
 大多数时候不需要传入外部gain(默认为None)如果传入外部gain则内部gain不生效.
 
 输入元素数小于输出元素数且关闭稀疏时内部gain为1. 否则内部gain为sqrt(输出元素数/输入元素数)
